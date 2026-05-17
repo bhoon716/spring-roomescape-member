@@ -62,9 +62,10 @@ public class ReservationService {
         ReservationTime time = findTimeByIdOrThrow(request.timeId());
         Theme theme = findThemeByIdOrThrow(request.themeId());
 
+        Reservation reservation = Reservation.createByUser(request.username(), theme, request.date(), time, clock);
+
         validateDuplicateReservation(request.themeId(), request.date(), request.timeId());
 
-        Reservation reservation = Reservation.createByUser(request.username(), theme, request.date(), time, clock);
         Reservation savedReservation = reservationRepository.save(reservation);
 
         return ReservationResponse.from(savedReservation);
@@ -89,9 +90,10 @@ public class ReservationService {
         Reservation reservation = findReservationByIdOrThrow(id);
         Theme newTheme = findThemeByIdOrThrow(request.themeId());
 
+        Reservation updatedReservation = reservation.updateByUser(newTheme, request.date(), newTime, clock);
+
         validateDuplicateReservationForUpdate(request.themeId(), request.date(), request.timeId(), id);
 
-        Reservation updatedReservation = reservation.updateByUser(newTheme, request.date(), newTime, clock);
         reservationRepository.update(id, updatedReservation);
 
         return ReservationResponse.from(updatedReservation);
