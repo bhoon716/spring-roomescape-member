@@ -2,7 +2,6 @@ package roomescape.domain.reservation.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,22 +59,12 @@ public class ReservationService {
 
     @Transactional
     public ReservationResponse saveReservationByUser(ReservationCreateRequest request) {
-        validateReservationDateIsNotInPast(request.date());
-
         ReservationTime time = findTimeByIdOrThrow(request.timeId());
-        validateReservationTimeIsNotInPastWhenToday(request.date(), time.getStartAt());
-
         Theme theme = findThemeByIdOrThrow(request.themeId());
 
         validateDuplicateReservation(request.themeId(), request.date(), request.timeId());
 
-        Reservation reservation = Reservation.create(
-                request.username(),
-                theme,
-                request.date(),
-                time
-        );
-
+        Reservation reservation = Reservation.createByUser(request.username(), theme, request.date(), time, clock);
         Reservation savedReservation = reservationRepository.save(reservation);
 
         return ReservationResponse.from(savedReservation);
@@ -88,13 +77,7 @@ public class ReservationService {
 
         validateDuplicateReservation(request.themeId(), request.date(), request.timeId());
 
-        Reservation reservation = Reservation.create(
-                request.username(),
-                theme,
-                request.date(),
-                time
-        );
-
+        Reservation reservation = Reservation.createAdmin(request.username(), theme, request.date(), time);
         Reservation savedReservation = reservationRepository.save(reservation);
 
         return ReservationResponse.from(savedReservation);
@@ -102,19 +85,13 @@ public class ReservationService {
 
     @Transactional
     public ReservationResponse updateReservationByUser(Long id, ReservationUpdateRequest request) {
-        validateReservationDateIsNotInPast(request.date());
-
         ReservationTime newTime = findTimeByIdOrThrow(request.timeId());
-        validateReservationTimeIsNotInPastWhenToday(request.date(), newTime.getStartAt());
-
         Reservation reservation = findReservationByIdOrThrow(id);
-        validateReservationIsNotInPast(reservation);
-
         Theme newTheme = findThemeByIdOrThrow(request.themeId());
 
         validateDuplicateReservationForUpdate(request.themeId(), request.date(), request.timeId(), id);
 
-        Reservation updatedReservation = reservation.update(newTheme, request.date(), newTime);
+        Reservation updatedReservation = reservation.updateByUser(newTheme, request.date(), newTime, clock);
         reservationRepository.update(id, updatedReservation);
 
         return ReservationResponse.from(updatedReservation);
@@ -128,7 +105,7 @@ public class ReservationService {
 
         validateDuplicateReservationForUpdate(request.themeId(), request.date(), request.timeId(), id);
 
-        Reservation updatedReservation = reservation.update(newTheme, request.date(), newTime);
+        Reservation updatedReservation = reservation.updateByAdmin(newTheme, request.date(), newTime);
         reservationRepository.update(id, updatedReservation);
 
         return ReservationResponse.from(updatedReservation);
@@ -137,44 +114,14 @@ public class ReservationService {
     @Transactional
     public void deleteReservationByUser(Long id) {
         Reservation reservation = findReservationByIdOrThrow(id);
+        reservation.validateIsNotInPast(clock);
 
-        validateReservationIsNotInPast(reservation);
-
-        reservationRepository.deleteById(id);
+        deleteByIdOrThrow(id);
     }
 
     @Transactional
     public void deleteReservationByAdmin(Long id) {
-        int deletedCount = reservationRepository.deleteById(id);
-
-        if (deletedCount == 0) {
-            throw new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND);
-        }
-    }
-
-    private void validateReservationDateIsNotInPast(LocalDate date) {
-        LocalDate nowDate = LocalDate.now(clock);
-
-        if (date.isBefore(nowDate)) {
-            throw new BusinessException(ReservationErrorCode.PAST_RESERVATION);
-        }
-    }
-
-    private void validateReservationTimeIsNotInPastWhenToday(LocalDate date, LocalTime time) {
-        LocalDate nowDate = LocalDate.now(clock);
-        LocalTime nowTime = LocalTime.now(clock);
-
-        if (date.isEqual(nowDate) && time.isBefore(nowTime)) {
-            throw new BusinessException(ReservationErrorCode.PAST_RESERVATION);
-        }
-    }
-
-    private void validateReservationIsNotInPast(Reservation reservation) {
-        validateReservationDateIsNotInPast(reservation.getDate());
-        validateReservationTimeIsNotInPastWhenToday(
-                reservation.getDate(),
-                reservation.getTime().getStartAt()
-        );
+        deleteByIdOrThrow(id);
     }
 
     private void validateDuplicateReservation(Long themeId, LocalDate date, Long timeId) {
@@ -202,5 +149,13 @@ public class ReservationService {
     private Theme findThemeByIdOrThrow(Long themeId) {
         return themeRepository.findById(themeId)
                 .orElseThrow(() -> new BusinessException(ThemeErrorCode.THEME_NOT_FOUND));
+    }
+
+    private void deleteByIdOrThrow(Long id) {
+        int deletedCount = reservationRepository.deleteById(id);
+
+        if (deletedCount == 0) {
+            throw new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND);
+        }
     }
 }

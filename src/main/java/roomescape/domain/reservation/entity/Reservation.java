@@ -1,7 +1,11 @@
 package roomescape.domain.reservation.entity;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Objects;
+import roomescape.common.exception.BusinessException;
+import roomescape.domain.reservation.exception.ReservationErrorCode;
 import roomescape.domain.reservationtime.entity.ReservationTime;
 import roomescape.domain.theme.entity.Theme;
 
@@ -29,6 +33,17 @@ public class Reservation {
         return new Reservation(null, username, theme, date, time);
     }
 
+    public static Reservation createByUser(String username, Theme theme, LocalDate date, ReservationTime time,
+                                           Clock clock) {
+        Reservation reservation = new Reservation(null, username, theme, date, time);
+        reservation.validateIsNotInPast(clock);
+        return reservation;
+    }
+
+    public static Reservation createAdmin(String username, Theme theme, LocalDate date, ReservationTime time) {
+        return new Reservation(null, username, theme, date, time);
+    }
+
     public static Reservation of(Long id, String username, Theme theme, LocalDate date, ReservationTime time) {
         return new Reservation(id, username, theme, date, time);
     }
@@ -48,8 +63,28 @@ public class Reservation {
         }
     }
 
-    public Reservation update(Theme theme, LocalDate date, ReservationTime time) {
+    public Reservation updateByUser(Theme theme, LocalDate date, ReservationTime time, Clock clock) {
+        this.validateIsNotInPast(clock);
+        Reservation newReservation = new Reservation(this.id, this.username, theme, date, time);
+        newReservation.validateIsNotInPast(clock);
+        return newReservation;
+    }
+
+    public Reservation updateByAdmin(Theme theme, LocalDate date, ReservationTime time) {
         return new Reservation(this.id, this.username, theme, date, time);
+    }
+
+    public void validateIsNotInPast(Clock clock) {
+        LocalDate nowDate = LocalDate.now(clock);
+        LocalTime nowTime = LocalTime.now(clock);
+
+        if (date.isBefore(nowDate)) {
+            throw new BusinessException(ReservationErrorCode.PAST_RESERVATION);
+        }
+
+        if (date.isEqual(nowDate) && time.getStartAt().isBefore(nowTime)) {
+            throw new BusinessException(ReservationErrorCode.PAST_RESERVATION);
+        }
     }
 
     public Long getId() {

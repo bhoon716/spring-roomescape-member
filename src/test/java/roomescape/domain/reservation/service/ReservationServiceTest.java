@@ -241,7 +241,7 @@ class ReservationServiceTest {
     }
 
     @Test
-    @DisplayName("지나간 날짜에 대한 예약 생성은 불가능하다.")
+    @DisplayName("사용자는 지나간 날짜에 대한 예약 생성은 불가능하다.")
     void saveReservationByUserWithPastDateThrowException() {
         // given
         Long timeId = 1L;
@@ -253,6 +253,11 @@ class ReservationServiceTest {
                 timeId
         );
 
+        ReservationTime time = ReservationTime.of(timeId, futureTime);
+        Theme theme = Theme.of(themeId, "theme", "desc", "url");
+        when(reservationTimeRepository.findById(timeId)).thenReturn(Optional.of(time));
+        when(themeRepository.findById(themeId)).thenReturn(Optional.of(theme));
+
         // when & then
         assertThatThrownBy(() -> reservationService.saveReservationByUser(request))
                 .isInstanceOf(BusinessException.class)
@@ -260,7 +265,7 @@ class ReservationServiceTest {
     }
 
     @Test
-    @DisplayName("당일 지나간 시간에 대한 예약 생성은 불가능하다.")
+    @DisplayName("시용자는 당일 지나간 시간에 대한 예약 생성은 불가능하다.")
     void saveReservationByUserWithPastTimeOnSameDateThrowException() {
         // given
         Long timeId = 1L;
@@ -275,6 +280,8 @@ class ReservationServiceTest {
 
         when(reservationTimeRepository.findById(timeId))
                 .thenReturn(Optional.of(ReservationTime.of(timeId, pastTime)));
+        when(themeRepository.findById(themeId))
+                .thenReturn(Optional.of(Theme.of(themeId, "theme", "desc", "url")));
 
         // when & then
         assertThatThrownBy(() -> reservationService.saveReservationByUser(request))
@@ -284,7 +291,7 @@ class ReservationServiceTest {
 
     @Test
     @DisplayName("이미 동일한 테마, 날짜, 시간에 예약이 존재하면 예약이 불가능하다.")
-    void saveReservationByUserWithDuplicateThrowException() {
+    void saveReservationWithDuplicateThrowException() {
         // given
         Long timeId = 1L;
         Long themeId = 1L;
@@ -307,6 +314,10 @@ class ReservationServiceTest {
 
         // when & then
         assertThatThrownBy(() -> reservationService.saveReservationByUser(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ReservationErrorCode.DUPLICATE_RESERVATION.getMessage());
+
+        assertThatThrownBy(() -> reservationService.saveReservationByAdmin(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(ReservationErrorCode.DUPLICATE_RESERVATION.getMessage());
     }
@@ -332,8 +343,7 @@ class ReservationServiceTest {
                 newDate,
                 newTime.getId(),
                 reservationId
-        ))
-                .thenReturn(false);
+        )).thenReturn(false);
 
         // when
         ReservationResponse response = reservationService.updateReservationByUser(reservationId, request);
@@ -365,8 +375,7 @@ class ReservationServiceTest {
                 futureDate,
                 time.getId(),
                 reservationId
-        ))
-                .thenReturn(false);
+        )).thenReturn(false);
 
         // when
         ReservationResponse response = reservationService.updateReservationByUser(reservationId, request);
@@ -389,6 +398,12 @@ class ReservationServiceTest {
         ReservationTime newTime = ReservationTime.of(2L, pastTime);
         ReservationUpdateRequest request = new ReservationUpdateRequest(theme.getId(), newDate, newTime.getId());
 
+        when(reservationTimeRepository.findById(newTime.getId())).thenReturn(Optional.of(newTime));
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(
+                Reservation.of(reservationId, "브라운", theme, nowDate, ReservationTime.of(1L, futureTime))
+        ));
+        when(themeRepository.findById(theme.getId())).thenReturn(Optional.of(theme));
+
         // when & then
         assertThatThrownBy(() -> reservationService.updateReservationByUser(reservationId, request))
                 .isInstanceOf(BusinessException.class)
@@ -406,6 +421,10 @@ class ReservationServiceTest {
         ReservationUpdateRequest request = new ReservationUpdateRequest(theme.getId(), nowDate, newTime.getId());
 
         when(reservationTimeRepository.findById(newTime.getId())).thenReturn(Optional.of(newTime));
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(
+                Reservation.of(reservationId, "브라운", theme, nowDate, ReservationTime.of(1L, futureTime))
+        ));
+        when(themeRepository.findById(theme.getId())).thenReturn(Optional.of(theme));
 
         // when & then
         assertThatThrownBy(() -> reservationService.updateReservationByUser(reservationId, request))
@@ -432,6 +451,7 @@ class ReservationServiceTest {
 
         when(reservationTimeRepository.findById(newTime.getId())).thenReturn(Optional.of(newTime));
         when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(existingReservation));
+        when(themeRepository.findById(theme.getId())).thenReturn(Optional.of(theme));
 
         // when
         assertThatThrownBy(() -> reservationService.updateReservationByUser(reservationId, request))
@@ -477,6 +497,7 @@ class ReservationServiceTest {
         Reservation reservation = Reservation.of(reservationId, "브라운", theme, futureDate,
                 ReservationTime.of(1L, futureTime));
         when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.deleteById(reservationId)).thenReturn(1);
 
         // when
         reservationService.deleteReservationByUser(reservationId);
