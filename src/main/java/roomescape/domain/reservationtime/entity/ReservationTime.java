@@ -5,9 +5,9 @@ import java.util.Objects;
 
 public class ReservationTime {
 
-    private Long id;
+    private final Long id;
 
-    private LocalTime startAt;
+    private final LocalTime startAt;
 
     private ReservationTime(Long id, LocalTime startAt) {
         this.id = id;
@@ -22,9 +22,9 @@ public class ReservationTime {
         return new ReservationTime(id, startAt);
     }
 
-    public void assignId(Long id) {
+    public ReservationTime assignId(Long id) {
         validateAssignableId(id);
-        this.id = id;
+        return new ReservationTime(id, this.startAt);
     }
 
     private void validateAssignableId(Long id) {
@@ -37,8 +37,8 @@ public class ReservationTime {
         }
     }
 
-    public void update(LocalTime startAt) {
-        this.startAt = startAt;
+    public ReservationTime update(LocalTime startAt) {
+        return new ReservationTime(this.id, startAt);
     }
 
     public Long getId() {
@@ -63,6 +63,6 @@ public class ReservationTime {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return Objects.hash(id);
     }
 }

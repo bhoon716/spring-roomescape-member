@@ -52,10 +52,10 @@ public class ReservationTimeService {
             throw new BusinessException(TimeErrorCode.RESERVATION_TIME_DUPLICATE);
         }
 
-        reservationTime.update(request.startAt());
-        reservationTimeRepository.update(id, reservationTime);
+        ReservationTime updatedTime = reservationTime.update(request.startAt());
+        reservationTimeRepository.update(id, updatedTime);
 
-        return ReservationTimeResponse.from(reservationTime);
+        return ReservationTimeResponse.from(updatedTime);
     }
 
     @Transactional

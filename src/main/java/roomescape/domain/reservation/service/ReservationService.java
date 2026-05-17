@@ -114,10 +114,10 @@ public class ReservationService {
 
         validateDuplicateReservationForUpdate(request.themeId(), request.date(), request.timeId(), id);
 
-        reservation.update(newTheme, request.date(), newTime);
-        reservationRepository.update(id, reservation);
+        Reservation updatedReservation = reservation.update(newTheme, request.date(), newTime);
+        reservationRepository.update(id, updatedReservation);
 
-        return ReservationResponse.from(reservation);
+        return ReservationResponse.from(updatedReservation);
     }
 
     @Transactional
@@ -128,10 +128,10 @@ public class ReservationService {
 
         validateDuplicateReservationForUpdate(request.themeId(), request.date(), request.timeId(), id);
 
-        reservation.update(newTheme, request.date(), newTime);
-        reservationRepository.update(id, reservation);
+        Reservation updatedReservation = reservation.update(newTheme, request.date(), newTime);
+        reservationRepository.update(id, updatedReservation);
 
-        return ReservationResponse.from(reservation);
+        return ReservationResponse.from(updatedReservation);
     }
 
     @Transactional

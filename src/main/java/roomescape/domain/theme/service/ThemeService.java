@@ -100,10 +100,10 @@ public class ThemeService {
             throw new BusinessException(ThemeErrorCode.THEME_DUPLICATE);
         }
 
-        theme.update(request.name(), request.description(), request.thumbnailUrl());
-        themeRepository.update(id, theme);
+        Theme updatedTheme = theme.update(request.name(), request.description(), request.thumbnailUrl());
+        themeRepository.update(id, updatedTheme);
 
-        return ThemeResponse.from(theme);
+        return ThemeResponse.from(updatedTheme);
     }
 
     @Transactional

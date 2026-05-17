@@ -7,15 +7,15 @@ import roomescape.domain.theme.entity.Theme;
 
 public class Reservation {
 
-    private Long id;
+    private final Long id;
 
     private final String username;
 
-    private Theme theme;
+    private final Theme theme;
 
-    private LocalDate date;
+    private final LocalDate date;
 
-    private ReservationTime time;
+    private final ReservationTime time;
 
     private Reservation(Long id, String username, Theme theme, LocalDate date, ReservationTime time) {
         this.id = id;
@@ -33,9 +33,9 @@ public class Reservation {
         return new Reservation(id, username, theme, date, time);
     }
 
-    public void assignId(Long id) {
+    public Reservation assignId(Long id) {
         validateAssignableId(id);
-        this.id = id;
+        return new Reservation(id, this.username, this.theme, this.date, this.time);
     }
 
     private void validateAssignableId(Long id) {
@@ -48,10 +48,8 @@ public class Reservation {
         }
     }
 
-    public void update(Theme theme, LocalDate date, ReservationTime time) {
-        this.theme = theme;
-        this.date = date;
-        this.time = time;
+    public Reservation update(Theme theme, LocalDate date, ReservationTime time) {
+        return new Reservation(this.id, this.username, theme, date, time);
     }
 
     public Long getId() {
@@ -88,6 +86,6 @@ public class Reservation {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return Objects.hash(id);
     }
 }

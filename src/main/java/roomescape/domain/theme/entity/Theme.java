@@ -4,13 +4,13 @@ import java.util.Objects;
 
 public class Theme {
 
-    private Long id;
+    private final Long id;
 
-    private String name;
+    private final String name;
 
-    private String description;
+    private final String description;
 
-    private String thumbnailUrl;
+    private final String thumbnailUrl;
 
     private Theme(Long id, String name, String description, String thumbnailUrl) {
         this.id = id;
@@ -27,9 +27,9 @@ public class Theme {
         return new Theme(id, name, description, thumbnailUrl);
     }
 
-    public void assignId(Long id) {
+    public Theme assignId(Long id) {
         validateAssignableId(id);
-        this.id = id;
+        return new Theme(id, this.name, this.description, this.thumbnailUrl);
     }
 
     private void validateAssignableId(Long id) {
@@ -42,10 +42,8 @@ public class Theme {
         }
     }
 
-    public void update(String name, String description, String thumbnailUrl) {
-        this.name = name;
-        this.description = description;
-        this.thumbnailUrl = thumbnailUrl;
+    public Theme update(String name, String description, String thumbnailUrl) {
+        return new Theme(this.id, name, description, thumbnailUrl);
     }
 
     public Long getId() {
@@ -78,6 +76,6 @@ public class Theme {
 
     @Override
     public int hashCode() {
-        return 0;
+        return Objects.hash(id);
     }
 }
