@@ -70,6 +70,14 @@ public class ThemeJdbcRepository implements ThemeRepository {
             WHERE id = :id;
             """;
 
+    private static final String EXISTS_BY_ID_QUERY = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM theme
+                WHERE id = :id
+            );
+            """;
+
     private static final String EXISTS_BY_NAME_QUERY = """
             SELECT EXISTS (
                 SELECT 1
@@ -209,6 +217,14 @@ public class ThemeJdbcRepository implements ThemeRepository {
                 DELETE_THEME_BY_ID_QUERY,
                 parameters
         );
+    }
+
+    @Override
+    public boolean existsById(Long id) {
+        SqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("id", id);
+
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(EXISTS_BY_ID_QUERY, parameters, Boolean.class));
     }
 
     @Override

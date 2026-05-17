@@ -4,14 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -107,18 +110,17 @@ class ThemeServiceTest {
         // given
         Long themeId = 1L;
         LocalDate date = LocalDate.of(2026, 5, 6);
-        when(themeRepository.findById(themeId))
-                .thenReturn(java.util.Optional.of(Theme.of(themeId, "테마", "설명", "url")));
+        when(themeRepository.existsById(themeId)).thenReturn(true);
         when(themeRepository.findAllReservationTimesByThemeIdAndDate(themeId, date))
-                .thenReturn(List.of(new ThemeReservationTimeResult(1L, java.time.LocalTime.of(10, 0), true)));
+                .thenReturn(List.of(new ThemeReservationTimeResult(1L, LocalTime.of(10, 0), true)));
 
         // when
         ThemeReservationTimesResponse response = themeService.findAllThemeReservationTimes(themeId, date);
 
         // then
         assertThat(response.times()).hasSize(1);
-        assertThat(response.times().get(0).id()).isEqualTo(1L);
-        verify(themeRepository).findById(themeId);
+        assertThat(response.times().getFirst().id()).isEqualTo(1L);
+        verify(themeRepository).existsById(themeId);
         verify(themeRepository).findAllReservationTimesByThemeIdAndDate(themeId, date);
     }
 
@@ -128,8 +130,8 @@ class ThemeServiceTest {
         // given
         Long themeId = 999L;
         LocalDate date = LocalDate.of(2026, 5, 6);
-        when(themeRepository.findById(themeId))
-                .thenReturn(java.util.Optional.empty());
+        when(themeRepository.existsById(themeId))
+                .thenReturn(false);
 
         // when & then
         assertThatThrownBy(() -> themeService.findAllThemeReservationTimes(themeId, date))
@@ -234,8 +236,8 @@ class ThemeServiceTest {
         ThemeUpdateRequest request = new ThemeUpdateRequest("새 테마", "새 설명", "www.new.com");
 
         Theme theme = Theme.of(themeId, "기존 테마", "기존 설명", "www.old.com");
-        when(themeRepository.findById(themeId)).thenReturn(java.util.Optional.of(theme));
-        when(themeRepository.update(org.mockito.ArgumentMatchers.eq(themeId), any(Theme.class))).thenReturn(1);
+        when(themeRepository.findById(themeId)).thenReturn(Optional.of(theme));
+        when(themeRepository.update(eq(themeId), any(Theme.class))).thenReturn(1);
 
         // when
         ThemeResponse response = themeService.updateTheme(themeId, request);
@@ -243,7 +245,7 @@ class ThemeServiceTest {
         // then
         assertThat(response.id()).isEqualTo(themeId);
         assertThat(response.name()).isEqualTo("새 테마");
-        verify(themeRepository).update(org.mockito.ArgumentMatchers.eq(themeId), any(Theme.class));
+        verify(themeRepository).update(eq(themeId), any(Theme.class));
     }
 
     @Test
@@ -254,9 +256,9 @@ class ThemeServiceTest {
         ThemeUpdateRequest request = new ThemeUpdateRequest("기존 테마", "새 설명", "www.new.com");
 
         Theme theme = Theme.of(themeId, "기존 테마", "기존 설명", "www.old.com");
-        when(themeRepository.findById(themeId)).thenReturn(java.util.Optional.of(theme));
+        when(themeRepository.findById(themeId)).thenReturn(Optional.of(theme));
         when(themeRepository.existsByNameAndIdNot("기존 테마", themeId)).thenReturn(false);
-        when(themeRepository.update(org.mockito.ArgumentMatchers.eq(themeId), any(Theme.class))).thenReturn(1);
+        when(themeRepository.update(eq(themeId), any(Theme.class))).thenReturn(1);
 
         // when
         ThemeResponse response = themeService.updateTheme(themeId, request);
@@ -264,7 +266,7 @@ class ThemeServiceTest {
         // then
         assertThat(response.id()).isEqualTo(themeId);
         assertThat(response.name()).isEqualTo("기존 테마");
-        verify(themeRepository).update(org.mockito.ArgumentMatchers.eq(themeId), any(Theme.class));
+        verify(themeRepository).update(eq(themeId), any(Theme.class));
     }
 
     @Test
@@ -273,7 +275,7 @@ class ThemeServiceTest {
         // given
         Long themeId = 999L;
         ThemeUpdateRequest request = new ThemeUpdateRequest("새 테마", "새 설명", "www.new.com");
-        when(themeRepository.findById(themeId)).thenReturn(java.util.Optional.empty());
+        when(themeRepository.findById(themeId)).thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> themeService.updateTheme(themeId, request))
@@ -290,7 +292,7 @@ class ThemeServiceTest {
         ThemeUpdateRequest request = new ThemeUpdateRequest(duplicateName, "새 설명", "www.new.com");
 
         Theme theme = Theme.of(themeId, "기존 테마", "기존 설명", "www.old.com");
-        when(themeRepository.findById(themeId)).thenReturn(java.util.Optional.of(theme));
+        when(themeRepository.findById(themeId)).thenReturn(Optional.of(theme));
         when(themeRepository.existsByNameAndIdNot(duplicateName, themeId)).thenReturn(true);
 
         // when & then

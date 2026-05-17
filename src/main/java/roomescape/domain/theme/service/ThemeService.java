@@ -40,6 +40,9 @@ public class ThemeService {
     }
 
     public ThemeReservationTimesResponse findAllThemeReservationTimes(Long themeId, LocalDate date) {
+        if (!themeRepository.existsById(themeId)) {
+            throw new BusinessException(ThemeErrorCode.THEME_NOT_FOUND);
+        }
         List<ThemeReservationTimeResponse> times = themeRepository.findAllReservationTimesByThemeIdAndDate(themeId,
                         date)
                 .stream()
