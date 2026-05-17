@@ -9,9 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import roomescape.common.exception.BusinessException;
 import roomescape.domain.theme.entity.Theme;
 import roomescape.domain.theme.exception.ThemeErrorCode;
-import roomescape.domain.theme.repository.PopularThemeResult;
 import roomescape.domain.theme.repository.ThemeRepository;
-import roomescape.domain.theme.repository.ThemeReservationTimeResult;
 import roomescape.domain.theme.request.ThemeCreateRequest;
 import roomescape.domain.theme.request.ThemeUpdateRequest;
 import roomescape.domain.theme.response.PopularThemeResponse;
@@ -34,23 +32,17 @@ public class ThemeService {
     }
 
     public ThemesResponse findAllThemes() {
-        List<Theme> themes = themeRepository.findAll();
-        List<ThemeResponse> responses = themes.stream()
+        List<ThemeResponse> themes = themeRepository.findAll().stream()
                 .map(ThemeResponse::from)
                 .toList();
 
-        return new ThemesResponse(responses);
+        return new ThemesResponse(themes);
     }
 
     public ThemeReservationTimesResponse findAllThemeReservationTimes(Long themeId, LocalDate date) {
-        findThemeByIdOrThrow(themeId);
-
-        List<ThemeReservationTimeResult> timeResults = themeRepository.findAllReservationTimesByThemeIdAndDate(
-                themeId,
-                date
-        );
-
-        List<ThemeReservationTimeResponse> times = timeResults.stream()
+        List<ThemeReservationTimeResponse> times = themeRepository.findAllReservationTimesByThemeIdAndDate(themeId,
+                        date)
+                .stream()
                 .map(ThemeReservationTimeResponse::from)
                 .toList();
 
@@ -62,31 +54,19 @@ public class ThemeService {
         LocalDate startDate = today.minusDays(period);
         LocalDate endDate = today.minusDays(1);
 
-        List<PopularThemeResult> results = themeRepository.findPopularThemes(
-                startDate,
-                endDate,
-                limit
-        );
-
-        List<PopularThemeResponse> popularThemes = results.stream()
+        List<PopularThemeResponse> themes = themeRepository.findPopularThemes(startDate, endDate, limit)
+                .stream()
                 .map(PopularThemeResponse::from)
                 .toList();
 
-        return new PopularThemesResponse(popularThemes);
+        return new PopularThemesResponse(themes);
     }
 
     @Transactional
     public ThemeResponse saveTheme(ThemeCreateRequest request) {
-        if (themeRepository.existsByName(request.name())) {
-            throw new BusinessException(ThemeErrorCode.THEME_DUPLICATE);
-        }
+        validateThemeNameNotDuplicated(request.name());
 
-        Theme theme = Theme.create(
-                request.name(),
-                request.description(),
-                request.thumbnailUrl()
-        );
-
+        Theme theme = Theme.create(request.name(), request.description(), request.thumbnailUrl());
         Theme savedTheme = themeRepository.save(theme);
 
         return ThemeResponse.from(savedTheme);
@@ -96,9 +76,7 @@ public class ThemeService {
     public ThemeResponse updateTheme(Long id, ThemeUpdateRequest request) {
         Theme theme = findThemeByIdOrThrow(id);
 
-        if (themeRepository.existsByNameAndIdNot(request.name(), id)) {
-            throw new BusinessException(ThemeErrorCode.THEME_DUPLICATE);
-        }
+        validateThemeNameNotDuplicated(request.name(), id);
 
         Theme updatedTheme = theme.update(request.name(), request.description(), request.thumbnailUrl());
         themeRepository.update(id, updatedTheme);
@@ -121,5 +99,17 @@ public class ThemeService {
     private Theme findThemeByIdOrThrow(Long themeId) {
         return themeRepository.findById(themeId)
                 .orElseThrow(() -> new BusinessException(ThemeErrorCode.THEME_NOT_FOUND));
+    }
+
+    private void validateThemeNameNotDuplicated(String name) {
+        if (themeRepository.existsByName(name)) {
+            throw new BusinessException(ThemeErrorCode.THEME_DUPLICATE);
+        }
+    }
+
+    private void validateThemeNameNotDuplicated(String name, Long excludeId) {
+        if (themeRepository.existsByNameAndIdNot(name, excludeId)) {
+            throw new BusinessException(ThemeErrorCode.THEME_DUPLICATE);
+        }
     }
 }

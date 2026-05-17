@@ -1,5 +1,6 @@
 package roomescape.domain.reservationtime.service;
 
+import java.time.LocalTime;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -32,12 +33,9 @@ public class ReservationTimeService {
 
     @Transactional
     public ReservationTimeResponse saveReservationTime(ReservationTimeCreateRequest request) {
-        if (reservationTimeRepository.existsByStartAt(request.startAt())) {
-            throw new BusinessException(TimeErrorCode.RESERVATION_TIME_DUPLICATE);
-        }
+        validateReservationTimeNotDuplicated(request.startAt());
 
         ReservationTime reservationTime = ReservationTime.create(request.startAt());
-
         ReservationTime savedTime = reservationTimeRepository.save(reservationTime);
 
         return ReservationTimeResponse.from(savedTime);
@@ -45,12 +43,8 @@ public class ReservationTimeService {
 
     @Transactional
     public ReservationTimeResponse updateReservationTime(Long id, ReservationTimeUpdateRequest request) {
-        ReservationTime reservationTime = reservationTimeRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(TimeErrorCode.RESERVATION_TIME_NOT_FOUND));
-
-        if (reservationTimeRepository.existsByStartAtAndIdNot(request.startAt(), id)) {
-            throw new BusinessException(TimeErrorCode.RESERVATION_TIME_DUPLICATE);
-        }
+        ReservationTime reservationTime = findTimeByIdOrThrow(id);
+        validateReservationTimeNotDuplicated(request.startAt(), id);
 
         ReservationTime updatedTime = reservationTime.update(request.startAt());
         reservationTimeRepository.update(id, updatedTime);
@@ -67,6 +61,23 @@ public class ReservationTimeService {
             }
         } catch (DataIntegrityViolationException exception) {
             throw new BusinessException(TimeErrorCode.RESERVATION_TIME_DELETE_CONFLICT, exception);
+        }
+    }
+
+    private ReservationTime findTimeByIdOrThrow(Long id) {
+        return reservationTimeRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(TimeErrorCode.RESERVATION_TIME_NOT_FOUND));
+    }
+
+    private void validateReservationTimeNotDuplicated(LocalTime startAt) {
+        if (reservationTimeRepository.existsByStartAt(startAt)) {
+            throw new BusinessException(TimeErrorCode.RESERVATION_TIME_DUPLICATE);
+        }
+    }
+
+    private void validateReservationTimeNotDuplicated(LocalTime startAt, Long excludedId) {
+        if (reservationTimeRepository.existsByStartAtAndIdNot(startAt, excludedId)) {
+            throw new BusinessException(TimeErrorCode.RESERVATION_TIME_DUPLICATE);
         }
     }
 }
